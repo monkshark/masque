@@ -1,0 +1,6 @@
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <rect width="128" height="128" rx="28" fill="#4a2f7a"/>
+  <g transform="translate(64,64) scale(1.3) translate(-50,-48)" fill="#f1ebde" fill-rule="evenodd">
+    <path d="M15 39C20 31 29 27 37 29C42 30 46 35 50 39C54 35 58 30 63 29C71 27 80 31 85 39C81 52 73 64 62 69C57 71 53 63 50 60C47 63 43 71 38 69C27 64 19 52 15 39Z M30 49Q37 43 44 49Q37 55 30 49Z M56 49Q63 43 70 49Q63 55 56 49Z"/>
+  </g>
+</svg>

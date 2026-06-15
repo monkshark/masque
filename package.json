@@ -1,0 +1,38 @@
+{
+  "name": "masque",
+  "version": "0.1.0",
+  "description": "Spoof browser fingerprint surfaces with consistent personas. Local-only, best-effort.",
+  "license": "MIT",
+  "author": "Huido Choo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "fpcheck": "node test-page/server.mjs"
+  },
+  "devDependencies": {
+    "@crxjs/vite-plugin": "^2.6.1",
+    "@tailwindcss/vite": "^4.3.1",
+    "@types/chrome": "^0.1.43",
+    "@types/node": "^25.9.3",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^4.7.0",
+    "jsdom": "^29.1.1",
+    "sharp": "^0.35.1",
+    "tailwindcss": "^4.3.1",
+    "typescript": "^6.0.3",
+    "vite": "^6.4.3",
+    "vitest": "^4.1.8"
+  },
+  "dependencies": {
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "zod": "^4.4.3",
+    "zustand": "^5.0.14"
+  }
+}

@@ -5,3 +5,5 @@ dist
 node_modules/.tmp
 test-page/
 plan.md
+*.zip
+/masque/

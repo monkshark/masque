@@ -3,7 +3,7 @@ import { defineManifest } from '@crxjs/vite-plugin'
 export default defineManifest({
   manifest_version: 3,
   name: 'Masque',
-  version: '0.1.0',
+  version: '1.0.0',
   description:
     'Spoof browser fingerprint surfaces with consistent personas. Local-only, best-effort.',
   minimum_chrome_version: '120',

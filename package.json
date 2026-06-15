@@ -1,6 +1,6 @@
 {
   "name": "masque",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Spoof browser fingerprint surfaces with consistent personas. Local-only, best-effort.",
   "license": "MIT",
   "author": "Huido Choo",

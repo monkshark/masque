@@ -1,3 +1,5 @@
+![Masque](public/banner.png)
+
 # Masque
 
 브라우저 지문(fingerprint) 표면을 일관된 환경으로 위장하는 Chrome(Manifest V3) 확장입니다. JavaScript API와 HTTP 헤더 전반에 걸쳐 하나의 가짜 정체성을 일관되게 제시하여, 지문 수집기가 JS에서 읽는 값과 브라우저가 실제로 보내는 헤더가 서로 맞물리도록 만듭니다.

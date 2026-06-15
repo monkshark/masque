@@ -1,3 +1,5 @@
+![Masque](public/banner.png)
+
 # Masque
 
 A Chrome (Manifest V3) extension that disguises browser fingerprint surfaces behind one consistent environment. It presents a single fake identity coherently across JavaScript APIs and HTTP headers, so the values a fingerprinter reads in JS line up with the headers the browser actually sends.

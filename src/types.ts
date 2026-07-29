@@ -59,11 +59,25 @@ export interface FeatureFlags {
 }
 
 export interface PersonaOverrides {
+  ua?: string
+  platform?: string
+  vendor?: string
   timezone?: string
   languages?: string[]
   hardwareConcurrency?: number
   deviceMemory?: number
   devicePixelRatio?: number
+  maxTouchPoints?: number
+  screen?: Partial<Persona['screen']>
+  webgl?: Partial<Persona['webgl']>
+}
+
+export interface SiteRule {
+  id: string
+  pattern: string
+  personaId: string
+  overrides?: PersonaOverrides
+  enabled: boolean
 }
 
 export interface Settings {
@@ -73,6 +87,7 @@ export interface Settings {
   exceptions: string[]
   features: FeatureFlags
   overrides: PersonaOverrides
+  siteRules: SiteRule[]
 }
 
 export const DEFAULT_FEATURES: FeatureFlags = {
@@ -108,6 +123,7 @@ export const DEFAULT_SETTINGS: Settings = {
   exceptions: [],
   features: DEFAULT_FEATURES,
   overrides: {},
+  siteRules: [],
 }
 
 export interface FeatureMeta {

@@ -1,12 +1,12 @@
 import type { Settings, Persona, FeatureFlags } from '../types'
-import { personaById, WINDOWS_CHROME, resolvePersona } from '../core/personas'
-import { getSettings, isExcepted } from '../core/settings'
+import { personaById, WINDOWS_CHROME, resolvePersona, resolvePersonaForHost } from '../core/personas'
+import { getSettings, isExcepted, hostOf } from '../core/settings'
 
 function activePersona(settings: Settings): Persona {
   const base = personaById(settings.activePersonaId) ?? WINDOWS_CHROME
   return resolvePersona(base, settings.overrides)
 }
-import { buildDnrRules, RULE_ID } from '../core/dnr'
+import { buildDnrRules, ALL_RULE_IDS } from '../core/dnr'
 import { applyInPage, type InjectOptions } from '../inject/applyInPage'
 
 function optsFrom(f: FeatureFlags, seed: number): InjectOptions {
@@ -46,8 +46,22 @@ function hasUserScripts(): boolean {
   }
 }
 
-function buildCode(persona: Persona, opts: InjectOptions): string {
-  return `;(${applyInPage.toString()})(${JSON.stringify(persona)},${JSON.stringify(opts)});`
+function buildCode(
+  defaultPersona: Persona,
+  opts: InjectOptions,
+  siteRules: { pattern: string; persona: Persona }[],
+): string {
+  const matcher = `var __rules=${JSON.stringify(siteRules)};var __host=(location&&location.hostname)||'';var __persona=${JSON.stringify(defaultPersona)};for(var __i=0;__i<__rules.length;__i++){var __r=__rules[__i];if(__host===__r.pattern||__host.slice(-(__r.pattern.length+1))==='.'+__r.pattern){__persona=__r.persona;break;}}`
+  return `;(function(){${matcher}(${applyInPage.toString()})(__persona,${JSON.stringify(opts)});})();`
+}
+
+function siteRulesFor(settings: Settings): { pattern: string; persona: Persona }[] {
+  return settings.siteRules
+    .filter((r) => r.enabled)
+    .map((r) => ({
+      pattern: r.pattern,
+      persona: resolvePersona(personaById(r.personaId) ?? WINDOWS_CHROME, r.overrides),
+    }))
 }
 
 function excludeMatchesFor(exceptions: string[]): string[] {
@@ -69,7 +83,7 @@ async function syncUserScripts(settings: Settings): Promise<void> {
     }
 
     const persona = activePersona(settings)
-    const code = buildCode(persona, optsFrom(settings.features, settings.seed))
+    const code = buildCode(persona, optsFrom(settings.features, settings.seed), siteRulesFor(settings))
 
     const script: chrome.userScripts.RegisteredUserScript = {
       id: USER_SCRIPT_ID,
@@ -94,7 +108,7 @@ async function syncNetwork(settings: Settings): Promise<void> {
 
   const addRules = buildDnrRules(persona, settings)
   await chrome.declarativeNetRequest.updateDynamicRules({
-    removeRuleIds: [RULE_ID],
+    removeRuleIds: ALL_RULE_IDS,
     addRules: addRules as unknown as chrome.declarativeNetRequest.Rule[],
   })
 
@@ -137,7 +151,7 @@ chrome.webNavigation.onCommitted.addListener(async (details) => {
   if (!/^https?:/.test(details.url)) return
   if (isExcepted(details.url, settings.exceptions)) return
 
-  const persona = activePersona(settings)
+  const persona = resolvePersonaForHost(hostOf(details.url), settings)
 
   try {
     await chrome.scripting.executeScript({

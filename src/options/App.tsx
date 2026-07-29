@@ -9,7 +9,7 @@ import {
 } from '../types'
 import { PRESETS, personaById, resolvePersona } from '../core/personas'
 import { getSettings, setSettings, userScriptsAvailable, openExtensionDetails } from '../core/settings'
-import type { PersonaOverrides, Persona } from '../types'
+import type { PersonaOverrides, Persona, SiteRule } from '../types'
 
 function Switch({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
   return (
@@ -188,6 +188,11 @@ export function App() {
           </div>
         </section>
 
+        <SiteRules
+          siteRules={settings.siteRules}
+          onChange={(siteRules) => void save({ siteRules })}
+        />
+
         <Exceptions
           exceptions={settings.exceptions}
           onChange={(exceptions) => void save({ exceptions })}
@@ -196,7 +201,14 @@ export function App() {
         <footer className="mt-8 flex items-center justify-between text-xs text-neutral-500">
           <button
             type="button"
-            onClick={() => void save({ ...DEFAULT_SETTINGS, features: { ...DEFAULT_FEATURES } })}
+            onClick={() =>
+              void save({
+                ...DEFAULT_SETTINGS,
+                features: { ...DEFAULT_FEATURES },
+                exceptions: settings.exceptions,
+                siteRules: settings.siteRules,
+              })
+            }
             className="rounded border border-neutral-700 px-3 py-1.5 hover:border-neutral-500"
           >
             Reset to defaults
@@ -233,6 +245,56 @@ function Select({
           </option>
         ))}
       </select>
+    </label>
+  )
+}
+
+function TextRow({
+  label,
+  value,
+  placeholder,
+  onChange,
+}: {
+  label: string
+  value: string
+  placeholder: string
+  onChange: (v: string) => void
+}) {
+  return (
+    <label className="flex items-center justify-between gap-4 py-2">
+      <span className="text-sm text-neutral-300">{label}</span>
+      <input
+        type="text"
+        value={value}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-64 rounded bg-neutral-800 px-2 py-1 text-sm outline-none"
+      />
+    </label>
+  )
+}
+
+function NumberRow({
+  label,
+  value,
+  placeholder,
+  onChange,
+}: {
+  label: string
+  value: string
+  placeholder: string
+  onChange: (v: string) => void
+}) {
+  return (
+    <label className="flex items-center justify-between gap-4 py-2">
+      <span className="text-sm text-neutral-300">{label}</span>
+      <input
+        type="number"
+        value={value}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-24 rounded bg-neutral-800 px-2 py-1 text-sm outline-none"
+      />
     </label>
   )
 }
@@ -278,8 +340,23 @@ function Overrides({
     for (const k of Object.keys(next) as (keyof PersonaOverrides)[]) {
       const v = next[k]
       if (v === undefined || v === '' || (Array.isArray(v) && v.length === 0)) delete next[k]
+      else if (typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length === 0) delete next[k]
     }
     onChange(next)
+  }
+
+  const setScreenField = (key: keyof Persona['screen'], raw: string) => {
+    const merged: Partial<Persona['screen']> = { ...overrides.screen }
+    if (raw === '') delete merged[key]
+    else merged[key] = Number(raw)
+    set({ screen: merged })
+  }
+
+  const setWebglField = (key: keyof Persona['webgl'], raw: string) => {
+    const merged: Partial<Persona['webgl']> = { ...overrides.webgl }
+    if (raw === '') delete merged[key]
+    else merged[key] = raw
+    set({ webgl: merged })
   }
 
   const numOpts = (vals: number[], def: number, unit = '') => [
@@ -288,6 +365,7 @@ function Overrides({
   ]
 
   const langValue = overrides.languages ? overrides.languages[0] : ''
+  const TOUCH_OPTIONS = [0, 1, 5, 10]
 
   return (
     <section className="mb-6 rounded-xl border border-neutral-800 bg-neutral-900/40 p-5">
@@ -336,6 +414,84 @@ function Overrides({
           onChange={(v) => set({ devicePixelRatio: v ? Number(v) : undefined })}
           options={numOpts(DPR_OPTIONS, base.devicePixelRatio, 'x')}
         />
+        <Select
+          label="Touch points"
+          value={overrides.maxTouchPoints != null ? String(overrides.maxTouchPoints) : ''}
+          onChange={(v) => set({ maxTouchPoints: v ? Number(v) : undefined })}
+          options={numOpts(TOUCH_OPTIONS, base.maxTouchPoints)}
+        />
+        <TextRow
+          label="User-Agent"
+          value={overrides.ua ?? ''}
+          placeholder={base.ua}
+          onChange={(v) => set({ ua: v || undefined })}
+        />
+        <TextRow
+          label="Platform"
+          value={overrides.platform ?? ''}
+          placeholder={base.platform}
+          onChange={(v) => set({ platform: v || undefined })}
+        />
+        <TextRow
+          label="Vendor"
+          value={overrides.vendor ?? ''}
+          placeholder={base.vendor}
+          onChange={(v) => set({ vendor: v || undefined })}
+        />
+      </div>
+
+      <h3 className="mt-4 mb-1 text-xs font-semibold uppercase tracking-wide text-neutral-500">
+        Screen
+      </h3>
+      <div className="grid grid-cols-2 gap-x-6 sm:grid-cols-3">
+        <NumberRow
+          label="Width"
+          value={overrides.screen?.width != null ? String(overrides.screen.width) : ''}
+          placeholder={String(base.screen.width)}
+          onChange={(v) => setScreenField('width', v)}
+        />
+        <NumberRow
+          label="Height"
+          value={overrides.screen?.height != null ? String(overrides.screen.height) : ''}
+          placeholder={String(base.screen.height)}
+          onChange={(v) => setScreenField('height', v)}
+        />
+        <NumberRow
+          label="Avail width"
+          value={overrides.screen?.availWidth != null ? String(overrides.screen.availWidth) : ''}
+          placeholder={String(base.screen.availWidth)}
+          onChange={(v) => setScreenField('availWidth', v)}
+        />
+        <NumberRow
+          label="Avail height"
+          value={overrides.screen?.availHeight != null ? String(overrides.screen.availHeight) : ''}
+          placeholder={String(base.screen.availHeight)}
+          onChange={(v) => setScreenField('availHeight', v)}
+        />
+        <NumberRow
+          label="Color depth"
+          value={overrides.screen?.colorDepth != null ? String(overrides.screen.colorDepth) : ''}
+          placeholder={String(base.screen.colorDepth)}
+          onChange={(v) => setScreenField('colorDepth', v)}
+        />
+      </div>
+
+      <h3 className="mt-4 mb-1 text-xs font-semibold uppercase tracking-wide text-neutral-500">
+        WebGL
+      </h3>
+      <div className="divide-y divide-neutral-800">
+        <TextRow
+          label="Vendor"
+          value={overrides.webgl?.vendor ?? ''}
+          placeholder={base.webgl.vendor}
+          onChange={(v) => setWebglField('vendor', v)}
+        />
+        <TextRow
+          label="Renderer"
+          value={overrides.webgl?.renderer ?? ''}
+          placeholder={base.webgl.renderer}
+          onChange={(v) => setWebglField('renderer', v)}
+        />
       </div>
       {Object.keys(overrides).length > 0 && (
         <button
@@ -345,6 +501,106 @@ function Overrides({
         >
           Clear overrides
         </button>
+      )}
+    </section>
+  )
+}
+
+function SiteRules({
+  siteRules,
+  onChange,
+}: {
+  siteRules: SiteRule[]
+  onChange: (v: SiteRule[]) => void
+}) {
+  const [pattern, setPattern] = useState('')
+  const [personaId, setPersonaId] = useState(PRESETS[0].id)
+
+  const add = () => {
+    const host = pattern.trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '')
+    if (!host) return
+    const rule: SiteRule = {
+      id: crypto.randomUUID(),
+      pattern: host,
+      personaId,
+      enabled: true,
+    }
+    onChange([...siteRules, rule])
+    setPattern('')
+  }
+
+  const update = (id: string, patch: Partial<SiteRule>) =>
+    onChange(siteRules.map((r) => (r.id === id ? { ...r, ...patch } : r)))
+
+  const remove = (id: string) => onChange(siteRules.filter((r) => r.id !== id))
+
+  return (
+    <section className="mb-6 rounded-xl border border-neutral-800 bg-neutral-900/40 p-5">
+      <h2 className="mb-1 text-sm font-semibold uppercase tracking-wide text-neutral-400">
+        Site rules
+      </h2>
+      <p className="mb-3 text-xs text-neutral-500">
+        Force a specific persona on matching domains (subdomains included), regardless of the
+        globally active persona above.
+      </p>
+      <div className="mb-3 flex gap-2">
+        <input
+          value={pattern}
+          onChange={(e) => setPattern(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') add()
+          }}
+          placeholder="example.com"
+          className="flex-1 rounded bg-neutral-800 px-3 py-1.5 text-sm outline-none"
+        />
+        <select
+          value={personaId}
+          onChange={(e) => setPersonaId(e.target.value)}
+          className="rounded bg-neutral-800 px-2 py-1.5 text-sm outline-none"
+        >
+          {PRESETS.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.label}
+            </option>
+          ))}
+        </select>
+        <button
+          type="button"
+          onClick={add}
+          className="rounded bg-neutral-700 px-3 py-1.5 text-sm hover:bg-neutral-600"
+        >
+          Add
+        </button>
+      </div>
+      {siteRules.length === 0 ? (
+        <p className="text-xs text-neutral-600">No site rules.</p>
+      ) : (
+        <ul className="divide-y divide-neutral-800">
+          {siteRules.map((r) => (
+            <li key={r.id} className="flex items-center gap-3 py-2">
+              <Switch checked={r.enabled} onChange={(v) => update(r.id, { enabled: v })} />
+              <span className="flex-1 truncate font-mono text-sm text-neutral-300">{r.pattern}</span>
+              <select
+                value={r.personaId}
+                onChange={(e) => update(r.id, { personaId: e.target.value })}
+                className="rounded bg-neutral-800 px-2 py-1 text-xs outline-none"
+              >
+                {PRESETS.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.label}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => remove(r.id)}
+                className="text-neutral-500 hover:text-red-400"
+              >
+                ✕
+              </button>
+            </li>
+          ))}
+        </ul>
       )}
     </section>
   )

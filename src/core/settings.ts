@@ -1,4 +1,4 @@
-import { DEFAULT_SETTINGS, DEFAULT_FEATURES, type Settings, type FeatureFlags } from '../types'
+import { DEFAULT_SETTINGS, DEFAULT_FEATURES, type Settings, type FeatureFlags, type SiteRule } from '../types'
 
 export async function getSettings(): Promise<Settings> {
   const stored = await chrome.storage.local.get('settings')
@@ -54,4 +54,13 @@ export function isExcepted(url: string, exceptions: string[]): boolean {
   const host = hostOf(url)
   if (!host) return false
   return exceptions.some((e) => host === e || host.endsWith('.' + e))
+}
+
+export function hostMatchesPattern(host: string, pattern: string): boolean {
+  return host === pattern || host.endsWith('.' + pattern)
+}
+
+export function matchSiteRule(host: string, rules: SiteRule[]): SiteRule | undefined {
+  if (!host) return undefined
+  return rules.find((r) => r.enabled && hostMatchesPattern(host, r.pattern))
 }

@@ -1,4 +1,5 @@
-import type { Persona, PersonaOverrides } from '../types'
+import type { Persona, PersonaOverrides, Settings } from '../types'
+import { matchSiteRule } from './settings'
 
 export const WINDOWS_CHROME: Persona = {
   id: 'win-chrome',
@@ -100,7 +101,147 @@ export const ANDROID_CHROME: Persona = {
   },
 }
 
-export const PRESETS: Persona[] = [WINDOWS_CHROME, MAC_CHROME, ANDROID_CHROME]
+export const LINUX_CHROME: Persona = {
+  id: 'linux-chrome',
+  label: 'Linux · Chrome',
+  ua: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
+  platform: 'Linux x86_64',
+  vendor: 'Google Inc.',
+  language: 'en-US',
+  languages: ['en-US', 'en'],
+  hardwareConcurrency: 12,
+  deviceMemory: 16,
+  devicePixelRatio: 1,
+  screen: { width: 1920, height: 1080, availWidth: 1920, availHeight: 1053, colorDepth: 24 },
+  webgl: {
+    vendor: 'Google Inc. (Intel)',
+    renderer: 'ANGLE (Intel, Mesa Intel(R) UHD Graphics 620 (KBL GT2), OpenGL 4.6)',
+  },
+  timezone: 'Europe/Berlin',
+  maxTouchPoints: 0,
+  uaData: {
+    platform: 'Linux',
+    platformVersion: '6.5.0',
+    mobile: false,
+    architecture: 'x86',
+    bitness: '64',
+    uaFullVersion: '127.0.0.0',
+    brands: [
+      { brand: 'Not/A)Brand', version: '99' },
+      { brand: 'Google Chrome', version: '127' },
+      { brand: 'Chromium', version: '127' },
+    ],
+  },
+}
+
+export const WINDOWS_EDGE: Persona = {
+  id: 'windows-edge',
+  label: 'Windows · Edge',
+  ua: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36 Edg/127.0.0.0',
+  platform: 'Win32',
+  vendor: 'Google Inc.',
+  language: 'en-US',
+  languages: ['en-US', 'en'],
+  hardwareConcurrency: 16,
+  deviceMemory: 16,
+  devicePixelRatio: 1.5,
+  screen: { width: 2560, height: 1440, availWidth: 2560, availHeight: 1400, colorDepth: 24 },
+  webgl: {
+    vendor: 'Google Inc. (Intel)',
+    renderer: 'ANGLE (Intel, Intel(R) Iris(R) Xe Graphics Direct3D11 vs_5_0 ps_5_0, D3D11)',
+  },
+  timezone: 'America/Chicago',
+  maxTouchPoints: 0,
+  uaData: {
+    platform: 'Windows',
+    platformVersion: '15.0.0',
+    mobile: false,
+    architecture: 'x86',
+    bitness: '64',
+    uaFullVersion: '127.0.0.0',
+    brands: [
+      { brand: 'Not/A)Brand', version: '99' },
+      { brand: 'Microsoft Edge', version: '127' },
+      { brand: 'Chromium', version: '127' },
+    ],
+  },
+}
+
+export const CHROMEOS_CHROME: Persona = {
+  id: 'chromeos-chrome',
+  label: 'ChromeOS · Chrome',
+  ua: 'Mozilla/5.0 (X11; CrOS x86_64 15917.86.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
+  platform: 'Linux x86_64',
+  vendor: 'Google Inc.',
+  language: 'en-US',
+  languages: ['en-US', 'en'],
+  hardwareConcurrency: 4,
+  deviceMemory: 8,
+  devicePixelRatio: 2,
+  screen: { width: 1366, height: 768, availWidth: 1366, availHeight: 728, colorDepth: 24 },
+  webgl: {
+    vendor: 'Google Inc. (Intel)',
+    renderer: 'ANGLE (Intel, Intel(R) UHD Graphics 600 (GLK 2) Direct3D11 vs_5_0 ps_5_0, D3D11)',
+  },
+  timezone: 'Asia/Seoul',
+  maxTouchPoints: 0,
+  uaData: {
+    platform: 'Chrome OS',
+    platformVersion: '15917.86.0',
+    mobile: false,
+    architecture: 'x86',
+    bitness: '64',
+    uaFullVersion: '127.0.0.0',
+    brands: [
+      { brand: 'Not/A)Brand', version: '99' },
+      { brand: 'Google Chrome', version: '127' },
+      { brand: 'Chromium', version: '127' },
+    ],
+  },
+}
+
+export const WINDOWS_CHROME_LAPTOP: Persona = {
+  id: 'windows-chrome-laptop',
+  label: 'Windows · Chrome (laptop)',
+  ua: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
+  platform: 'Win32',
+  vendor: 'Google Inc.',
+  language: 'en-US',
+  languages: ['en-US', 'en'],
+  hardwareConcurrency: 4,
+  deviceMemory: 8,
+  devicePixelRatio: 1,
+  screen: { width: 1366, height: 768, availWidth: 1366, availHeight: 728, colorDepth: 24 },
+  webgl: {
+    vendor: 'Google Inc. (Intel)',
+    renderer: 'ANGLE (Intel, Intel(R) UHD Graphics 620 Direct3D11 vs_5_0 ps_5_0, D3D11)',
+  },
+  timezone: 'Europe/London',
+  maxTouchPoints: 0,
+  uaData: {
+    platform: 'Windows',
+    platformVersion: '10.0.0',
+    mobile: false,
+    architecture: 'x86',
+    bitness: '64',
+    uaFullVersion: '127.0.0.0',
+    brands: [
+      { brand: 'Not/A)Brand', version: '99' },
+      { brand: 'Google Chrome', version: '127' },
+      { brand: 'Chromium', version: '127' },
+    ],
+  },
+}
+
+export const PRESETS: Persona[] = [
+  WINDOWS_CHROME,
+  MAC_CHROME,
+  ANDROID_CHROME,
+  LINUX_CHROME,
+  WINDOWS_EDGE,
+  CHROMEOS_CHROME,
+  WINDOWS_CHROME_LAPTOP,
+]
 
 export function personaById(id: string): Persona | undefined {
   return PRESETS.find((p) => p.id === id)
@@ -109,6 +250,9 @@ export function personaById(id: string): Persona | undefined {
 export function resolvePersona(base: Persona, ov?: PersonaOverrides): Persona {
   if (!ov) return base
   const next: Persona = { ...base }
+  if (ov.ua) next.ua = ov.ua
+  if (ov.platform) next.platform = ov.platform
+  if (ov.vendor) next.vendor = ov.vendor
   if (ov.timezone) next.timezone = ov.timezone
   if (ov.languages && ov.languages.length) {
     next.languages = [...ov.languages]
@@ -117,5 +261,18 @@ export function resolvePersona(base: Persona, ov?: PersonaOverrides): Persona {
   if (typeof ov.hardwareConcurrency === 'number') next.hardwareConcurrency = ov.hardwareConcurrency
   if (typeof ov.deviceMemory === 'number') next.deviceMemory = ov.deviceMemory
   if (typeof ov.devicePixelRatio === 'number') next.devicePixelRatio = ov.devicePixelRatio
+  if (typeof ov.maxTouchPoints === 'number') next.maxTouchPoints = ov.maxTouchPoints
+  if (ov.screen) next.screen = { ...base.screen, ...ov.screen }
+  if (ov.webgl) next.webgl = { ...base.webgl, ...ov.webgl }
   return next
+}
+
+export function resolvePersonaForHost(host: string, settings: Settings): Persona {
+  const rule = matchSiteRule(host, settings.siteRules)
+  if (rule) {
+    const base = personaById(rule.personaId) ?? WINDOWS_CHROME
+    return resolvePersona(base, rule.overrides)
+  }
+  const base = personaById(settings.activePersonaId) ?? WINDOWS_CHROME
+  return resolvePersona(base, settings.overrides)
 }

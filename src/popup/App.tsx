@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { DEFAULT_SETTINGS, type Settings } from '../types'
-import { PRESETS } from '../core/personas'
+import { PRESETS, personaById } from '../core/personas'
 import {
   getSettings,
   setSettings,
   hostOf,
+  matchSiteRule,
   userScriptsAvailable,
   openExtensionDetails,
 } from '../core/settings'
@@ -61,6 +62,8 @@ export function App() {
   }
 
   const excepted = host ? settings.exceptions.includes(host) : false
+  const siteRule = host ? matchSiteRule(host, settings.siteRules) : undefined
+  const siteRulePersona = siteRule ? personaById(siteRule.personaId) : undefined
   const toggleException = (on: boolean) => {
     if (!host) return
     const exceptions = on
@@ -102,7 +105,8 @@ export function App() {
       <select
         value={settings.activePersonaId}
         onChange={(e) => void patch({ activePersonaId: e.target.value })}
-        className="mb-4 w-full rounded bg-neutral-800 px-2 py-1.5 text-sm outline-none"
+        disabled={!!siteRulePersona}
+        className="w-full rounded bg-neutral-800 px-2 py-1.5 text-sm outline-none disabled:opacity-50"
       >
         {PRESETS.map((p) => (
           <option key={p.id} value={p.id}>
@@ -110,6 +114,9 @@ export function App() {
           </option>
         ))}
       </select>
+      <p className="mb-4 min-h-[1rem] text-xs text-emerald-400">
+        {siteRulePersona ? `Site rule active: forcing "${siteRulePersona.label}" on ${host}` : ''}
+      </p>
 
       {host && (
         <div className="border-t border-neutral-800 pt-1">

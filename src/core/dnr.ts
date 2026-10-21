@@ -3,12 +3,16 @@ import { acceptLanguage, secChUa } from './headers'
 import { personaById, resolvePersona, WINDOWS_CHROME } from './personas'
 
 export const RULE_ID = 1
-export const MAX_SITE_RULES = 49
-export const ALL_RULE_IDS: number[] = Array.from({ length: MAX_SITE_RULES + 1 }, (_, i) => i + 1)
+export const SUBRESOURCE_RULE_ID = 2
+export const MAX_SITE_RULES = 24
+export const ALL_RULE_IDS: number[] = Array.from({ length: 2 + MAX_SITE_RULES * 2 }, (_, i) => i + 1)
 
-const RESOURCE_TYPES = [
-  'main_frame',
-  'sub_frame',
+// Frames take the persona of the document they load, so match on the request domain.
+const FRAME_TYPES = ['main_frame', 'sub_frame']
+
+// Subresources must carry the persona of the page that issued them (e.g. a chzzk.naver.com
+// page fetching from ssl.pstatic.net), so match on the initiator domain.
+const SUBRESOURCE_TYPES = [
   'xmlhttprequest',
   'script',
   'stylesheet',
@@ -29,7 +33,13 @@ export interface DnrRule {
   id: number
   priority: number
   action: { type: 'modifyHeaders'; requestHeaders: DnrHeader[] }
-  condition: { resourceTypes: string[]; requestDomains?: string[]; excludedRequestDomains?: string[] }
+  condition: {
+    resourceTypes: string[]
+    requestDomains?: string[]
+    excludedRequestDomains?: string[]
+    initiatorDomains?: string[]
+    excludedInitiatorDomains?: string[]
+  }
 }
 
 function headersFor(persona: Persona, settings: Settings): DnrHeader[] {
@@ -52,37 +62,63 @@ function headersFor(persona: Persona, settings: Settings): DnrHeader[] {
   return requestHeaders
 }
 
+function frameAndSubresourceRules(
+  ids: [number, number],
+  priority: number,
+  requestHeaders: DnrHeader[],
+  domains: string[] | null,
+  exceptions: string[],
+): DnrRule[] {
+  const action = { type: 'modifyHeaders' as const, requestHeaders }
+  const excluded = exceptions.length ? exceptions : undefined
+  return [
+    {
+      id: ids[0],
+      priority,
+      action,
+      condition: {
+        resourceTypes: FRAME_TYPES,
+        ...(domains ? { requestDomains: domains } : {}),
+        ...(excluded ? { excludedRequestDomains: excluded } : {}),
+      },
+    },
+    {
+      id: ids[1],
+      priority,
+      action,
+      condition: {
+        resourceTypes: SUBRESOURCE_TYPES,
+        ...(domains ? { initiatorDomains: domains } : {}),
+        ...(excluded ? { excludedInitiatorDomains: excluded } : {}),
+      },
+    },
+  ]
+}
+
 export function buildDnrRules(persona: Persona, settings: Settings): DnrRule[] {
   if (!settings.enabled || !settings.features.httpHeaders) return []
 
   const siteRules = settings.siteRules.filter((r) => r.enabled).slice(0, MAX_SITE_RULES)
   const rules: DnrRule[] = []
 
+  if (settings.scope !== 'sites') {
+    const requestHeaders = headersFor(persona, settings)
+    if (requestHeaders.length > 0) {
+      rules.push(
+        ...frameAndSubresourceRules([RULE_ID, SUBRESOURCE_RULE_ID], 1, requestHeaders, null, settings.exceptions),
+      )
+    }
+  }
+
   siteRules.forEach((rule, i) => {
     const rulePersona = resolvePersona(personaById(rule.personaId) ?? WINDOWS_CHROME, rule.overrides)
     const requestHeaders = headersFor(rulePersona, settings)
     if (requestHeaders.length === 0) return
-    rules.push({
-      id: i + 2,
-      priority: 2,
-      action: { type: 'modifyHeaders', requestHeaders },
-      condition: { resourceTypes: RESOURCE_TYPES, requestDomains: [rule.pattern] },
-    })
+    const base = 3 + i * 2
+    rules.push(
+      ...frameAndSubresourceRules([base, base + 1], 2, requestHeaders, [rule.pattern], settings.exceptions),
+    )
   })
-
-  const requestHeaders = headersFor(persona, settings)
-  if (requestHeaders.length > 0) {
-    const excluded = [...settings.exceptions, ...siteRules.map((r) => r.pattern)]
-    rules.unshift({
-      id: RULE_ID,
-      priority: 1,
-      action: { type: 'modifyHeaders', requestHeaders },
-      condition: {
-        resourceTypes: RESOURCE_TYPES,
-        ...(excluded.length ? { excludedRequestDomains: excluded } : {}),
-      },
-    })
-  }
 
   return rules
 }

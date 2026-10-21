@@ -9,7 +9,7 @@ import {
 } from '../types'
 import { PRESETS, personaById, resolvePersona } from '../core/personas'
 import { getSettings, setSettings, userScriptsAvailable, openExtensionDetails } from '../core/settings'
-import type { PersonaOverrides, Persona, SiteRule } from '../types'
+import type { PersonaOverrides, Persona, SiteRule, Scope } from '../types'
 
 function Switch({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
   return (
@@ -191,6 +191,8 @@ export function App() {
         <SiteRules
           siteRules={settings.siteRules}
           onChange={(siteRules) => void save({ siteRules })}
+          scope={settings.scope}
+          onScopeChange={(scope) => void save({ scope })}
         />
 
         <Exceptions
@@ -509,9 +511,13 @@ function Overrides({
 function SiteRules({
   siteRules,
   onChange,
+  scope,
+  onScopeChange,
 }: {
   siteRules: SiteRule[]
   onChange: (v: SiteRule[]) => void
+  scope: Scope
+  onScopeChange: (v: Scope) => void
 }) {
   const [pattern, setPattern] = useState('')
   const [personaId, setPersonaId] = useState(PRESETS[0].id)
@@ -543,6 +549,15 @@ function SiteRules({
         Force a specific persona on matching domains (subdomains included), regardless of the
         globally active persona above.
       </p>
+      <div className="mb-3 flex items-center justify-between gap-4">
+        <div>
+          <div className="text-sm text-neutral-200">Only apply to these sites</div>
+          <div className="text-xs text-neutral-500">
+            When on, Masque leaves every other site untouched.
+          </div>
+        </div>
+        <Switch checked={scope === 'sites'} onChange={(v) => onScopeChange(v ? 'sites' : 'all')} />
+      </div>
       <div className="mb-3 flex gap-2">
         <input
           value={pattern}

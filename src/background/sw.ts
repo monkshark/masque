@@ -1,6 +1,6 @@
 import type { Settings, Persona, FeatureFlags } from '../types'
 import { personaById, WINDOWS_CHROME, resolvePersona, resolvePersonaForHost } from '../core/personas'
-import { getSettings, isExcepted, hostOf } from '../core/settings'
+import { getSettings, isExcepted, hostOf, matchSiteRule } from '../core/settings'
 
 function activePersona(settings: Settings): Persona {
   const base = personaById(settings.activePersonaId) ?? WINDOWS_CHROME
@@ -47,12 +47,12 @@ function hasUserScripts(): boolean {
 }
 
 function buildCode(
-  defaultPersona: Persona,
+  defaultPersona: Persona | null,
   opts: InjectOptions,
   siteRules: { pattern: string; persona: Persona }[],
 ): string {
   const matcher = `var __rules=${JSON.stringify(siteRules)};var __host=(location&&location.hostname)||'';var __persona=${JSON.stringify(defaultPersona)};for(var __i=0;__i<__rules.length;__i++){var __r=__rules[__i];if(__host===__r.pattern||__host.slice(-(__r.pattern.length+1))==='.'+__r.pattern){__persona=__r.persona;break;}}`
-  return `;(function(){${matcher}(${applyInPage.toString()})(__persona,${JSON.stringify(opts)});})();`
+  return `;(function(){${matcher}if(!__persona)return;(${applyInPage.toString()})(__persona,${JSON.stringify(opts)});})();`
 }
 
 function siteRulesFor(settings: Settings): { pattern: string; persona: Persona }[] {
@@ -64,10 +64,10 @@ function siteRulesFor(settings: Settings): { pattern: string; persona: Persona }
     }))
 }
 
-function excludeMatchesFor(exceptions: string[]): string[] {
+function matchesForHosts(hosts: string[]): string[] {
   const out: string[] = []
-  for (const e of exceptions) {
-    out.push(`*://${e}/*`, `*://*.${e}/*`)
+  for (const h of hosts) {
+    out.push(`*://${h}/*`, `*://*.${h}/*`)
   }
   return out
 }
@@ -76,19 +76,22 @@ async function syncUserScripts(settings: Settings): Promise<void> {
   if (!hasUserScripts()) return
 
   try {
-    if (!settings.enabled) {
+    const siteRules = siteRulesFor(settings)
+    const sitesOnly = settings.scope === 'sites'
+
+    if (!settings.enabled || (sitesOnly && siteRules.length === 0)) {
       const existing = await chrome.userScripts.getScripts({ ids: [USER_SCRIPT_ID] })
       if (existing.length) await chrome.userScripts.unregister({ ids: [USER_SCRIPT_ID] })
       return
     }
 
-    const persona = activePersona(settings)
-    const code = buildCode(persona, optsFrom(settings.features, settings.seed), siteRulesFor(settings))
+    const persona = sitesOnly ? null : activePersona(settings)
+    const code = buildCode(persona, optsFrom(settings.features, settings.seed), siteRules)
 
     const script: chrome.userScripts.RegisteredUserScript = {
       id: USER_SCRIPT_ID,
-      matches: ['<all_urls>'],
-      excludeMatches: excludeMatchesFor(settings.exceptions),
+      matches: sitesOnly ? matchesForHosts(siteRules.map((r) => r.pattern)) : ['<all_urls>'],
+      excludeMatches: matchesForHosts(settings.exceptions),
       js: [{ code }],
       world: 'MAIN',
       runAt: 'document_start',
@@ -151,7 +154,9 @@ chrome.webNavigation.onCommitted.addListener(async (details) => {
   if (!/^https?:/.test(details.url)) return
   if (isExcepted(details.url, settings.exceptions)) return
 
-  const persona = resolvePersonaForHost(hostOf(details.url), settings)
+  const host = hostOf(details.url)
+  if (settings.scope === 'sites' && !matchSiteRule(host, settings.siteRules)) return
+  const persona = resolvePersonaForHost(host, settings)
 
   try {
     await chrome.scripting.executeScript({

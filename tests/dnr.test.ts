@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildDnrRules, RULE_ID } from '../src/core/dnr'
+import { buildDnrRules, RULE_ID, SUBRESOURCE_RULE_ID, ALL_RULE_IDS } from '../src/core/dnr'
 import { WINDOWS_CHROME, MAC_CHROME } from '../src/core/personas'
 import { DEFAULT_SETTINGS } from '../src/types'
 import type { SiteRule } from '../src/types'
@@ -48,12 +48,15 @@ describe('buildDnrRules', () => {
     expect(rule.condition.excludedRequestDomains).toBeUndefined()
   })
 
-  it('includes exceptions as excludedRequestDomains', () => {
-    const [rule] = buildDnrRules(WINDOWS_CHROME, {
+  it('includes exceptions as excludedRequestDomains for frames and excludedInitiatorDomains for subresources', () => {
+    const rules = buildDnrRules(WINDOWS_CHROME, {
       ...DEFAULT_SETTINGS,
       exceptions: ['example.com'],
     })
-    expect(rule.condition.excludedRequestDomains).toEqual(['example.com'])
+    const frame = rules.find((r) => r.id === RULE_ID)
+    const sub = rules.find((r) => r.id === SUBRESOURCE_RULE_ID)
+    expect(frame?.condition.excludedRequestDomains).toEqual(['example.com'])
+    expect(sub?.condition.excludedInitiatorDomains).toEqual(['example.com'])
   })
 
   it('adds a higher-priority rule scoped to an enabled site rule domain', () => {
@@ -66,11 +69,39 @@ describe('buildDnrRules', () => {
     expect(ua?.value).toBe(MAC_CHROME.ua)
   })
 
-  it('excludes site rule domains from the default rule', () => {
+  it('applies the site persona to subresources initiated by the site, on any domain', () => {
     const siteRule: SiteRule = { id: '1', pattern: 'bc.com', personaId: 'mac-chrome', enabled: true }
     const rules = buildDnrRules(WINDOWS_CHROME, { ...DEFAULT_SETTINGS, siteRules: [siteRule] })
-    const defaultRule = rules.find((r) => r.id === RULE_ID)
-    expect(defaultRule?.condition.excludedRequestDomains).toEqual(['bc.com'])
+    const sub = rules.find((r) => r.condition.initiatorDomains?.includes('bc.com'))
+    expect(sub).toBeDefined()
+    expect(sub?.condition.resourceTypes).not.toContain('main_frame')
+    expect(sub?.condition.requestDomains).toBeUndefined()
+    expect(sub?.action.requestHeaders.find((h) => h.header === 'user-agent')?.value).toBe(MAC_CHROME.ua)
+  })
+
+  it('emits only site rules when scope is sites', () => {
+    const siteRule: SiteRule = { id: '1', pattern: 'bc.com', personaId: 'mac-chrome', enabled: true }
+    const rules = buildDnrRules(WINDOWS_CHROME, { ...DEFAULT_SETTINGS, scope: 'sites', siteRules: [siteRule] })
+    expect(rules.some((r) => r.id === RULE_ID || r.id === SUBRESOURCE_RULE_ID)).toBe(false)
+    expect(rules).toHaveLength(2)
+    expect(rules.every((r) => r.condition.requestDomains?.includes('bc.com') || r.condition.initiatorDomains?.includes('bc.com'))).toBe(true)
+  })
+
+  it('emits no rules when scope is sites and there are no site rules', () => {
+    expect(buildDnrRules(WINDOWS_CHROME, { ...DEFAULT_SETTINGS, scope: 'sites' })).toEqual([])
+  })
+
+  it('keeps every rule id within ALL_RULE_IDS', () => {
+    const siteRules: SiteRule[] = Array.from({ length: 30 }, (_, i) => ({
+      id: String(i),
+      pattern: `s${i}.com`,
+      personaId: 'mac-chrome',
+      enabled: true,
+    }))
+    const rules = buildDnrRules(WINDOWS_CHROME, { ...DEFAULT_SETTINGS, siteRules })
+    const ids = rules.map((r) => r.id)
+    expect(new Set(ids).size).toBe(ids.length)
+    expect(ids.every((id) => ALL_RULE_IDS.includes(id))).toBe(true)
   })
 
   it('ignores a disabled site rule', () => {

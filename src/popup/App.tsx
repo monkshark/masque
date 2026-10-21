@@ -64,6 +64,7 @@ export function App() {
   const excepted = host ? settings.exceptions.includes(host) : false
   const siteRule = host ? matchSiteRule(host, settings.siteRules) : undefined
   const siteRulePersona = siteRule ? personaById(siteRule.personaId) : undefined
+  const sitesOnly = settings.scope === 'sites'
   const toggleException = (on: boolean) => {
     if (!host) return
     const exceptions = on
@@ -101,11 +102,19 @@ export function App() {
         />
       </div>
 
+      <div className="mb-2 border-b border-neutral-800 pb-1">
+        <Toggle
+          label="Only apply to site rules"
+          checked={sitesOnly}
+          onChange={(v) => void patch({ scope: v ? 'sites' : 'all' })}
+        />
+      </div>
+
       <label className="mb-1 block text-xs text-neutral-400">Persona</label>
       <select
         value={settings.activePersonaId}
         onChange={(e) => void patch({ activePersonaId: e.target.value })}
-        disabled={!!siteRulePersona}
+        disabled={!!siteRulePersona || sitesOnly}
         className="w-full rounded bg-neutral-800 px-2 py-1.5 text-sm outline-none disabled:opacity-50"
       >
         {PRESETS.map((p) => (
@@ -115,7 +124,11 @@ export function App() {
         ))}
       </select>
       <p className="mb-4 min-h-[1rem] text-xs text-emerald-400">
-        {siteRulePersona ? `Site rule active: forcing "${siteRulePersona.label}" on ${host}` : ''}
+        {siteRulePersona
+          ? `Site rule active: forcing "${siteRulePersona.label}" on ${host}`
+          : sitesOnly && host
+            ? <span className="text-neutral-500">No site rule for {host} — not spoofed</span>
+            : ''}
       </p>
 
       {host && (

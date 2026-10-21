@@ -80,8 +80,11 @@ export interface SiteRule {
   enabled: boolean
 }
 
+export type Scope = 'all' | 'sites'
+
 export interface Settings {
   enabled: boolean
+  scope: Scope
   activePersonaId: string
   seed: number
   exceptions: string[]
@@ -118,6 +121,7 @@ export const DEFAULT_FEATURES: FeatureFlags = {
 
 export const DEFAULT_SETTINGS: Settings = {
   enabled: true,
+  scope: 'all',
   activePersonaId: 'win-chrome',
   seed: 1337,
   exceptions: [],

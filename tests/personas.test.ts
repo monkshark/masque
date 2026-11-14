@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest'
-import { resolvePersonaForHost, resolvePersona, WINDOWS_CHROME, MAC_CHROME } from '../src/core/personas'
+import {
+  resolvePersonaForHost,
+  resolvePersona,
+  withChromeMajor,
+  WINDOWS_CHROME,
+  MAC_CHROME,
+  WINDOWS_EDGE,
+} from '../src/core/personas'
 import { DEFAULT_SETTINGS } from '../src/types'
 import type { SiteRule } from '../src/types'
 
@@ -67,5 +74,34 @@ describe('resolvePersona', () => {
     const next = resolvePersona(WINDOWS_CHROME, { webgl: { renderer: 'Custom Renderer' } })
     expect(next.webgl.renderer).toBe('Custom Renderer')
     expect(next.webgl.vendor).toBe(WINDOWS_CHROME.webgl.vendor)
+  })
+})
+
+describe('withChromeMajor', () => {
+  it('returns the persona unchanged when the browser version is unknown', () => {
+    expect(withChromeMajor(WINDOWS_CHROME, null)).toBe(WINDOWS_CHROME)
+  })
+
+  it('moves the user agent and client hints to the given major version', () => {
+    const next = withChromeMajor(WINDOWS_CHROME, '157')
+    expect(next.ua).toContain('Chrome/157.0.0.0')
+    expect(next.ua).not.toContain('Chrome/127')
+    expect(next.uaData.uaFullVersion).toBe('157.0.0.0')
+    expect(next.uaData.brands).toEqual([
+      { brand: 'Not/A)Brand', version: '99' },
+      { brand: 'Google Chrome', version: '157' },
+      { brand: 'Chromium', version: '157' },
+    ])
+  })
+
+  it('updates the Edge token as well', () => {
+    const next = withChromeMajor(WINDOWS_EDGE, '157')
+    expect(next.ua).toContain('Chrome/157.0.0.0')
+    expect(next.ua).toContain('Edg/157.0.0.0')
+    expect(next.uaData.brands.find((b) => b.brand === 'Microsoft Edge')?.version).toBe('157')
+  })
+
+  it('keeps a user-supplied ua override as typed', () => {
+    expect(resolvePersona(WINDOWS_CHROME, { ua: 'custom-ua' }).ua).toBe('custom-ua')
   })
 })

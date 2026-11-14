@@ -247,7 +247,29 @@ export function personaById(id: string): Persona | undefined {
   return PRESETS.find((p) => p.id === id)
 }
 
+export function hostChromeMajor(): string | null {
+  const ua = globalThis.navigator?.userAgent ?? ''
+  const m = /Chrome\/(\d+)/.exec(ua)
+  return m ? m[1] : null
+}
+
+// Personas ship with a fixed Chrome version; follow the real browser so sites don't flag an outdated one.
+export function withChromeMajor(p: Persona, major: string | null = hostChromeMajor()): Persona {
+  if (!major) return p
+  const full = `${major}.0.0.0`
+  return {
+    ...p,
+    ua: p.ua.replace(/Chrome\/[\d.]+/, `Chrome/${full}`).replace(/Edg\/[\d.]+/, `Edg/${full}`),
+    uaData: {
+      ...p.uaData,
+      uaFullVersion: full,
+      brands: p.uaData.brands.map((b) => (b.brand.startsWith('Not') ? b : { ...b, version: major })),
+    },
+  }
+}
+
 export function resolvePersona(base: Persona, ov?: PersonaOverrides): Persona {
+  base = withChromeMajor(base)
   if (!ov) return base
   const next: Persona = { ...base }
   if (ov.ua) next.ua = ov.ua
